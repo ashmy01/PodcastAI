@@ -32,7 +32,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         const episode = await runPipeline(podcast);
 
         return NextResponse.json(episode, { status: 201 });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Failed to generate episode:', error);
         return NextResponse.json({ message: 'Failed to generate episode', error: error.message }, { status: 500 });
     }

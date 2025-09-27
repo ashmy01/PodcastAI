@@ -122,19 +122,19 @@ export const PodcastHero = () => {
                     ease: EASE_OUT,
                     delay: DELAY,
                   }}
-                  className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-2xl text-center"
+                  className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-2xl text-center cursor-default"
                 >
-                  <div className="p-4 rounded-lg bg-card border">
+                  <div className="p-4 rounded-lg bg-card border cursor-default">
                     <h3 className="font-semibold text-white mb-2">AI-Generated</h3>
                     <p className="text-sm text-white/80">
                       Multi-character conversations with distinct personalities
                     </p>
                   </div>
-                  <div className="p-4 rounded-lg bg-card border">
+                  <div className="p-4 rounded-lg bg-card border cursor-default">
                     <h3 className="font-semibold text-white mb-2">Auto-Refresh</h3>
                     <p className="text-sm text-white/80">Fresh episodes generated at your chosen intervals</p>
                   </div>
-                  <div className="p-4 rounded-lg bg-card border">
+                  <div className="p-4 rounded-lg bg-card border cursor-default">
                     <h3 className="font-semibold text-white mb-2">Natural Language</h3>
                     <p className="text-sm text-white/80">Just describe your podcast idea in plain English</p>
                   </div>

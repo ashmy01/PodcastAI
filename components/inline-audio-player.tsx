@@ -90,8 +90,8 @@ export function InlineAudioPlayer({ src }: InlineAudioPlayerProps) {
     <div className="flex items-center gap-4 p-2 rounded-lg border bg-muted/50">
       <audio ref={audioRef} src={src} preload="metadata" />
 
-      <Button onClick={togglePlay} size="icon" variant="ghost" className="text-green-600 hover:text-green-700 hover:bg-green-50">
-        {isPlaying ? <PauseIcon className="w-5 h-5" /> : <PlayIcon className="w-5 h-5" />}
+      <Button onClick={togglePlay} size="icon" variant="ghost" className="!text-green-600 hover:!text-green-700 hover:!bg-green-50 border-green-200 hover:border-green-300">
+        {isPlaying ? <PauseIcon className="w-5 h-5 text-green-600" /> : <PlayIcon className="w-5 h-5 text-green-600" />}
       </Button>
 
       <div className="flex items-center gap-2 flex-1">

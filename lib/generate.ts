@@ -7,70 +7,70 @@ import fs from 'fs';
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 
 export const generate = async (prompt: string) => {
-    try {
-        const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-        const result = await model.generateContent(prompt);
-        const response = result.response;
-        const text = response.text();
-        return text;
-    } catch (error) {
-        console.error('Error generating response with Gemini:', error);
-        throw error;
-    }
+   try {
+      const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const result = await model.generateContent(prompt);
+      const response = result.response;
+      const text = response.text();
+      return text;
+   } catch (error) {
+      console.error('Error generating response with Gemini:', error);
+      throw error;
+   }
 }
 
 export const generateWithImage = async (prompt: string, image?: File) => {
-    const genAI = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
-    const imagePart = image
+   const genAI = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+   const imagePart = image
       ? {
-          inlineData: {
+         inlineData: {
             mimeType: image.type,
             data: Buffer.from(await image.arrayBuffer()).toString("base64"),
-          },
-        }
+         },
+      }
       : null;
 
-    const contents = [imagePart, { text: prompt }].filter(Boolean) as any[];
+   const contents = [imagePart, { text: prompt }].filter(Boolean) as any[];
 
-    const result = await genAI.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: contents
-    });
-    if (result.text) {
-        return result.text;
-    }
-    console.error(result);
-    console.error("No text in the response");
-    throw new Error("No text in the response");
+   const result = await genAI.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: contents
+   });
+   if (result.text) {
+      return result.text;
+   }
+   console.error(result);
+   console.error("No text in the response");
+   throw new Error("No text in the response");
 }
 
 export const generateImage = async (prompt: string): Promise<Blob> => {
-  const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+   const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
-  const contents = prompt;
+   const contents = prompt;
 
-  // Set responseModalities to include "Image" so the model can generate an image
-  const response = await ai.models.generateContent({
-    model: "gemini-2.0-flash-preview-image-generation",
-    contents: contents,
-    config: {
-      responseModalities: [Modality.TEXT, Modality.IMAGE],
-    },
-  });
+   // Set responseModalities to include "Image" so the model can generate an image
+   const response = await ai.models.generateContent({
+      model: "gemini-2.0-flash-preview-image-generation",
+      contents: contents,
+      config: {
+         responseModalities: [Modality.TEXT, Modality.IMAGE],
+      },
+   });
 
-  for (const part of response.candidates?.[0]?.content?.parts || []) {
-    // Based on the part type, either show the text or return the image as blob
-    if (part.text) {
-      console.log(part.text);
-    } else if (part.inlineData) {
-      const imageData = part.inlineData.data || '';
-      const buffer = Buffer.from(imageData, "base64");
-      return new Blob([buffer], { type: 'image/png' });
-    }
-  }
-  
-  throw new Error("No image generated in the response");
+   for (const part of response.candidates?.[0]?.content?.parts || []) {
+      // Based on the part type, either show the text or return the image as blob
+      if (part.text) {
+         console.log(part.text);
+      } else if (part.inlineData) {
+         const imageData = part.inlineData.data || '';
+         const buffer = Buffer.from(imageData, "base64");
+         return new Blob([buffer], { type: 'image/png' });
+      }
+   }
+
+   throw new Error("No image generated in the response");
 }
 
 async function saveWaveFile(
@@ -82,9 +82,9 @@ async function saveWaveFile(
 ) {
    return new Promise((resolve, reject) => {
       const writer = new wav.FileWriter(filename, {
-            channels,
-            sampleRate: rate,
-            bitDepth: sampleWidth * 8,
+         channels,
+         sampleRate: rate,
+         bitDepth: sampleWidth * 8,
       });
 
       writer.on('finish', resolve);
@@ -97,7 +97,7 @@ async function saveWaveFile(
 
 export async function generateAudio(prompt: string, characters: { name: string, voice: string }[]): Promise<string> {
    const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
-  
+
    const speakerVoiceConfigs = characters.map((character) => ({
       speaker: character.name,
       voiceConfig: {
@@ -111,12 +111,12 @@ export async function generateAudio(prompt: string, characters: { name: string, 
       // @ts-ignore
       contents: [{ parts: [{ text: prompt }] }],
       config: {
-            responseModalities: ['AUDIO'],
-            speechConfig: {
-               multiSpeakerVoiceConfig: {
-                  speakerVoiceConfigs: speakerVoiceConfigs,
-               }
+         responseModalities: ['AUDIO'],
+         speechConfig: {
+            multiSpeakerVoiceConfig: {
+               speakerVoiceConfigs: speakerVoiceConfigs,
             }
+         }
       }
    });
 
@@ -127,18 +127,18 @@ export async function generateAudio(prompt: string, characters: { name: string, 
 
    const tempDir = path.join(process.cwd(), "public", "audio");
    // ensure temp dir exists
-    try {
-        await fs.promises.mkdir(tempDir, { recursive: true });
-    } catch (e) {
-        // ignore
-    }
+   try {
+      await fs.promises.mkdir(tempDir, { recursive: true });
+   } catch (e) {
+      // ignore
+   }
    const fileName = `${id}.wav`;
    await saveWaveFile(path.join(tempDir, fileName), audioBuffer);
-   
+
    return id;
 }
 
-const prompt=`Raj (North Kolkata guy, bong accent):
+const prompt = `Raj (North Kolkata guy, bong accent):
 "Arrey shona, tum log South Delhi waale sab din raat gym gym karte ho, protein shake pite ho, lekin phir bhi pet mein gas hi hota hai. Hum toh phuchka khate hain roadside pe, aur phir bhi tummy bilkul flat. Scientific, na?"
 
 Mehak (South Delhi girl, Delhi accent):
