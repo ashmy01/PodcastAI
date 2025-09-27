@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "./ui/button"
-import { HomeIcon, PlusIcon, SpeakerLoudIcon, PlayIcon, GearIcon, PersonIcon } from "@radix-ui/react-icons"
+import { HomeIcon, PlusIcon, SpeakerLoudIcon, PlayIcon, GearIcon, PersonIcon, MagnifyingGlassIcon } from "@radix-ui/react-icons"
 import { useAuth } from "@/lib/auth-context"
 import { WalletConnectButton } from "./wallet-connect-button"
 import { WalletAddressDisplay } from "./wallet-address-display"
@@ -30,24 +30,34 @@ export function Navigation() {
           <span className="font-serif text-xl font-bold text-foreground">Podcast AI</span>
         </Link>
 
-        {/* Only show navigation items when authenticated */}
-        {isAuthenticated && (
-          <div className="hidden md:flex items-center gap-1">
-            {navigation.map((item) => {
-              const Icon = item.icon
-              const isActive = pathname === item.href
+        <div className="hidden md:flex items-center gap-1">
+          {/* Explore is always visible */}
+          <Link href="/explore">
+            <Button variant={pathname === "/explore" ? "default" : "ghost"} size="sm" className="gap-2">
+              <MagnifyingGlassIcon className="w-4 h-4" />
+              Explore
+            </Button>
+          </Link>
 
-              return (
-                <Link key={item.name} href={item.href}>
-                  <Button variant={isActive ? "default" : "ghost"} size="sm" className="gap-2">
-                    <Icon className="w-4 h-4" />
-                    {item.name}
-                  </Button>
-                </Link>
-              )
-            })}
-          </div>
-        )}
+          {/* Only show other navigation items when authenticated */}
+          {isAuthenticated && (
+            <>
+              {navigation.map((item) => {
+                const Icon = item.icon
+                const isActive = pathname === item.href
+
+                return (
+                  <Link key={item.name} href={item.href}>
+                    <Button variant={isActive ? "default" : "ghost"} size="sm" className="gap-2">
+                      <Icon className="w-4 h-4" />
+                      {item.name}
+                    </Button>
+                  </Link>
+                )
+              })}
+            </>
+          )}
+        </div>
       </div>
 
       <div className="flex items-center gap-3">

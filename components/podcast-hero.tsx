@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react"
 import { Button, buttonVariants } from "./ui/button"
 import { AnimatePresence, motion } from "framer-motion"
 import { cn } from "@/lib/utils"
-import { Cross1Icon, PlayIcon, SpeakerLoudIcon } from "@radix-ui/react-icons"
+import { Cross1Icon, PlayIcon, SpeakerLoudIcon, MagnifyingGlassIcon } from "@radix-ui/react-icons"
 import { useIsV0 } from "@/lib/context"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
@@ -89,21 +89,34 @@ export const PodcastHero = () => {
               }}
             >
               <div className="flex flex-col gap-6 w-full max-w-xl md:gap-8 lg:gap-10 items-center">
-                <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
-                  {isAuthenticated ? (
-                    <Button onClick={()=>{router.push("/create")}} size="lg" className="flex-1 gap-2 bg-white/10 backdrop-blur-lg border border-white/20 text-black hover:bg-white/20">
-                      <SpeakerLoudIcon className="w-4 h-4" />
-                      Start Creating
+                <div className="flex flex-col gap-4 w-full max-w-md">
+                  <div className="flex flex-col sm:flex-row gap-4 w-full">
+                    {isAuthenticated ? (
+                      <Button onClick={()=>{router.push("/create")}} size="lg" className="flex-1 gap-2 bg-white/10 backdrop-blur-lg border border-white/20 text-black hover:bg-white/20">
+                        <SpeakerLoudIcon className="w-4 h-4" />
+                        Start Creating
+                      </Button>
+                    ) : (
+                      <WalletConnectButton size="lg" className="flex-1 gap-2 bg-white/10 backdrop-blur-lg border border-white/20 text-black hover:bg-white/20">
+                        <SpeakerLoudIcon className="w-4 h-4" />
+                        Connect Wallet to Start
+                      </WalletConnectButton>
+                    )}
+                    <Button size="lg" className="flex-1 gap-2 bg-white/10 backdrop-blur-lg border border-white/20 text-black hover:bg-white/20">
+                      <PlayIcon className="w-4 h-4" />
+                      Listen to Demo
                     </Button>
-                  ) : (
-                    <WalletConnectButton size="lg" className="flex-1 gap-2 bg-white/10 backdrop-blur-lg border border-white/20 text-black hover:bg-white/20">
-                      <SpeakerLoudIcon className="w-4 h-4" />
-                      Connect Wallet to Start
-                    </WalletConnectButton>
-                  )}
-                  <Button size="lg" className="flex-1 gap-2 bg-white/10 backdrop-blur-lg border border-white/20 text-black hover:bg-white/20">
-                    <PlayIcon className="w-4 h-4" />
-                    Listen to Demo
+                  </div>
+                  
+                  {/* Explore Button */}
+                  <Button 
+                    onClick={()=>{router.push("/explore")}} 
+                   
+                    size="lg" 
+                    className="gap-2 bg-white/10 backdrop-blur-lg border border-white/20 text-black hover:bg-white/20"
+                  >
+                    <MagnifyingGlassIcon className="w-4 h-4" />
+                    Explore Community Podcasts
                   </Button>
                 </div>
 
