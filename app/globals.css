@@ -1,0 +1,97 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Updated color tokens to match AI podcast platform design brief */
+    --background: #ffffff;
+    --foreground: #334156;
+    --card: #f0f4f8;
+    --card-foreground: #334156;
+    --popover: #ffffff;
+    --popover-foreground: #334156;
+    --primary: #06b981;
+    --primary-foreground: #ffffff;
+    --secondary: #00d48e;
+    --secondary-foreground: #ffffff;
+    --muted: #f0f4f8;
+    --muted-foreground: #334156;
+    --accent: #e33691;
+    --accent-foreground: #ffffff;
+    --destructive: #d91139;
+    --destructive-foreground: #ffffff;
+    --success: #06b981;
+    --success-foreground: #ffffff;
+    --border: #e8eaed;
+    --input: #ffffff;
+    --ring: #06b981;
+    --chart-1: #06b981;
+    --chart-2: #00d48e;
+    --chart-3: #e33691;
+    --chart-4: #d91139;
+    --chart-5: #f0f4f8;
+    --radius: 0.5rem;
+
+    --sidebar: #f0f4f8;
+    --sidebar-foreground: #334156;
+    --sidebar-primary: #06b981;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #00d48e;
+    --sidebar-accent-foreground: #ffffff;
+    --sidebar-border: #e8eaed;
+    --sidebar-ring: #06b981;
+
+    /* Spacing variables */
+    --inset: min(2vw, 1.5rem);
+    --sides: 1rem;
+    --footer-safe-area: calc(var(--inset) * 2 + 1.5rem + theme("spacing.9"));
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 142.1 76.2% 36.3%;
+    --primary-foreground: 144.9 80.4% 97.3%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 142.1 76.2% 36.3%;
+  }
+}
+
+@keyframes shine {
+  0% {
+    transform: translate(-100%);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(200%);
+    opacity: 0;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
