@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "./ui/button"
-import { HomeIcon, PlusIcon, SpeakerLoudIcon, PlayIcon, GearIcon, PersonIcon, MagnifyingGlassIcon } from "@radix-ui/react-icons"
+import { HomeIcon, PlusIcon, SpeakerLoudIcon, PlayIcon, GearIcon, PersonIcon, MagnifyingGlassIcon, BackpackIcon } from "@radix-ui/react-icons"
 import { useAuth } from "@/lib/auth-context"
 import { WalletConnectButton } from "./wallet-connect-button"
 import { WalletAddressDisplay } from "./wallet-address-display"
@@ -14,6 +14,7 @@ const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: HomeIcon },
   { name: "Create", href: "/create", icon: PlusIcon },
   { name: "My Podcasts", href: "/podcasts", icon: SpeakerLoudIcon },
+  { name: "Brand Deals", href: "/brand-deals", icon: BackpackIcon },
   { name: "Episodes", href: "/episodes", icon: PlayIcon },
   { name: "Settings", href: "/settings", icon: GearIcon },
 ]
