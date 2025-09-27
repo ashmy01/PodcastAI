@@ -131,7 +131,7 @@ export default function ExplorePage() {
           {categories.map((category) => (
             <Button
               key={category}
-              variant={selectedCategory === category ? "default" : "outline"}
+              variant={selectedCategory === category ? "default" : "ghost"}
               size="sm"
               onClick={() => setSelectedCategory(category)}
               className="rounded-full"
@@ -233,7 +233,7 @@ export default function ExplorePage() {
                       Listen
                     </Link>
                   </Button>
-                  <Button size="sm" variant="outline" className="flex-1 group-hover:scale-105 transition-transform duration-200 group-hover:border-primary/50">
+                  <Button size="sm" variant="ghost" className="flex-1 group-hover:scale-105 transition-transform duration-200 group-hover:border-primary/50">
                     <SpeakerLoudIcon className="w-4 h-4 mr-1" />
                     Follow
                   </Button>

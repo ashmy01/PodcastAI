@@ -126,7 +126,7 @@ export default function Podcasts() {
                       <p className="text-xs text-muted-foreground">Episodes</p>
                     </div>
                     <div className="text-center p-3 bg-muted/50 rounded-lg">
-                      <p className="text-2xl font-bold text-secondary">{podcast.totalPlays.toLocaleString()}</p>
+                      <p className="text-2xl font-bold text-primary">{podcast.totalPlays.toLocaleString()}</p>
                       <p className="text-xs text-muted-foreground">Total Plays</p>
                     </div>
                   </div>

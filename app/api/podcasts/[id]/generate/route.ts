@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import { Podcast } from '@/lib/models/Podcast';
-import { runPipeline } from '@/lib/pipeline';
+import { runEnhancedPipeline } from '@/lib/ai-enhanced-pipeline';
 import { extractWalletAddress, requireAuth } from '@/lib/auth-middleware';
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
@@ -29,9 +29,18 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
             return NextResponse.json({ message: 'Access denied. You do not own this podcast.' }, { status: 403 });
         }
 
-        const episode = await runPipeline(podcast);
+        const result = await runEnhancedPipeline(podcast, {
+            enableAIAds: true,
+            maxAdsPerEpisode: 2,
+            skipVerification: false
+        });
 
-        return NextResponse.json(episode, { status: 201 });
+        return NextResponse.json({
+            episode: result.episode,
+            adPlacements: result.adPlacements,
+            matchedCampaigns: result.matchedCampaigns,
+            hasAds: result.adPlacements.length > 0
+        }, { status: 201 });
     } catch (error: any) {
         console.error('Failed to generate episode:', error);
         return NextResponse.json({ message: 'Failed to generate episode', error: error.message }, { status: 500 });
