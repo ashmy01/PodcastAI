@@ -2,8 +2,9 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { GoogleGenAI, Modality } from "@google/genai";
 import wav from 'wav';
 import path from 'path';
+import fs from 'fs';
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyCzgKY-cu4VRmh19GPMmC-smAvHnrgKaVo';
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 
 export const generate = async (prompt: string) => {
     try {
