@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Navigation } from "@/components/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useAudioPlayer } from "@/components/audio-player-provider"
+import { useAuth } from "@/lib/auth-context"
 import {
   PlayIcon,
   DotsHorizontalIcon,
@@ -21,59 +22,21 @@ import {
   TrashIcon,
 } from "@radix-ui/react-icons"
 
-// Mock data for episodes
-const mockEpisodes = [
-  {
-    id: 1,
-    title: "The Future of AI in Healthcare",
-    podcast: "Tech Talk Weekly",
-    status: "published",
-    publishDate: "2024-01-15",
-    duration: "24:30",
-    plays: 1247,
-    description: "Exploring how artificial intelligence is revolutionizing medical diagnosis and treatment.",
-  },
-  {
-    id: 2,
-    title: "Quantum Computing Breakthroughs",
-    podcast: "AI Insights",
-    status: "published",
-    publishDate: "2024-01-12",
-    duration: "18:45",
-    plays: 892,
-    description: "Latest developments in quantum computing and their implications for the future.",
-  },
-  {
-    id: 3,
-    title: "Building a Successful Startup",
-    podcast: "Startup Stories",
-    status: "scheduled",
-    publishDate: "2024-01-20",
-    duration: "32:15",
-    plays: 0,
-    description: "Lessons learned from successful entrepreneurs about building and scaling startups.",
-  },
-  {
-    id: 4,
-    title: "Machine Learning Ethics",
-    podcast: "Tech Talk Weekly",
-    status: "draft",
-    publishDate: "2024-01-18",
-    duration: "21:20",
-    plays: 0,
-    description: "Discussing the ethical implications of machine learning and AI decision-making.",
-  },
-  {
-    id: 5,
-    title: "The Rise of Edge Computing",
-    podcast: "AI Insights",
-    status: "published",
-    publishDate: "2024-01-10",
-    duration: "26:10",
-    plays: 1534,
-    description: "How edge computing is changing the landscape of data processing and IoT.",
-  },
-]
+interface Episode {
+  _id: string;
+  title: string;
+  summary: string;
+  audioUrl: string;
+  totalViews: number;
+  hasAds: boolean;
+  adCount: number;
+  totalEarnings: number;
+  createdAt: string;
+  podcast: {
+    _id: string;
+    title: string;
+  };
+}
 
 const statusColors = {
   published: "bg-green-100 text-green-800",
@@ -82,43 +45,121 @@ const statusColors = {
 }
 
 export default function Episodes() {
+  const { address, isAuthenticated } = useAuth()
+  const [episodes, setEpisodes] = useState<Episode[]>([])
+  const [podcasts, setPodcasts] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [podcastFilter, setPodcastFilter] = useState("all")
   const { playEpisode } = useAudioPlayer()
 
-  const episodesForPlayer = mockEpisodes.map((ep) => ({
-    id: ep.id,
-    title: ep.title,
-    podcast: ep.podcast,
-    duration: ep.duration,
-    description: ep.description,
-    audioUrl: `/placeholder-audio-${ep.id}.mp3`,
-  }))
-
-  const handlePlayEpisode = (episode: (typeof mockEpisodes)[0]) => {
-    const playerEpisode = {
-      id: episode.id,
-      title: episode.title,
-      podcast: episode.podcast,
-      duration: episode.duration,
-      description: episode.description,
-      audioUrl: `/placeholder-audio-${episode.id}.mp3`,
+  useEffect(() => {
+    if (isAuthenticated && address) {
+      fetchEpisodesAndPodcasts()
     }
+  }, [isAuthenticated, address])
+
+  const fetchEpisodesAndPodcasts = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      // Fetch podcasts first
+      const podcastsResponse = await fetch('/api/podcasts', {
+        headers: {
+          'Authorization': `Bearer ${address}`,
+        },
+      })
+      
+      if (podcastsResponse.ok) {
+        const podcastsData = await podcastsResponse.json()
+        setPodcasts(podcastsData || [])
+        
+        // Fetch all episodes for all podcasts
+        const allEpisodes: Episode[] = []
+        
+        for (const podcast of podcastsData || []) {
+          try {
+            const episodesResponse = await fetch(`/api/podcasts/${podcast._id}/episodes`, {
+              headers: {
+                'Authorization': `Bearer ${address}`,
+              },
+            })
+            
+            if (episodesResponse.ok) {
+              const episodesData = await episodesResponse.json()
+              const episodesWithPodcast = (episodesData.episodes || []).map((episode: any) => ({
+                ...episode,
+                podcast: {
+                  _id: podcast._id,
+                  title: podcast.title
+                }
+              }))
+              allEpisodes.push(...episodesWithPodcast)
+            }
+          } catch (episodeError) {
+            console.error(`Error fetching episodes for podcast ${podcast._id}:`, episodeError)
+          }
+        }
+        
+        setEpisodes(allEpisodes)
+      } else {
+        throw new Error('Failed to fetch podcasts')
+      }
+    } catch (err) {
+      console.error('Error fetching data:', err)
+      setError('Failed to load episodes')
+      setEpisodes([])
+      setPodcasts([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handlePlayEpisode = (episode: Episode) => {
+    const playerEpisode = {
+      id: episode._id,
+      title: episode.title,
+      podcast: episode.podcast.title,
+      duration: "Unknown", // We don't store duration separately
+      description: episode.summary,
+      audioUrl: episode.audioUrl,
+    }
+    
+    const episodesForPlayer = episodes.map((ep) => ({
+      id: ep._id,
+      title: ep.title,
+      podcast: ep.podcast.title,
+      duration: "Unknown",
+      description: ep.summary,
+      audioUrl: ep.audioUrl,
+    }))
+    
     playEpisode(playerEpisode, episodesForPlayer)
   }
 
-  const filteredEpisodes = mockEpisodes.filter((episode) => {
+  const getEpisodeStatus = (episode: Episode) => {
+    // Since we don't have explicit status, determine based on data
+    if (episode.audioUrl && episode.title) {
+      return 'published'
+    }
+    return 'draft'
+  }
+
+  const filteredEpisodes = episodes.filter((episode) => {
     const matchesSearch =
       episode.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      episode.podcast.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === "all" || episode.status === statusFilter
-    const matchesPodcast = podcastFilter === "all" || episode.podcast === podcastFilter
+      episode.podcast.title.toLowerCase().includes(searchTerm.toLowerCase())
+    const episodeStatus = getEpisodeStatus(episode)
+    const matchesStatus = statusFilter === "all" || episodeStatus === statusFilter
+    const matchesPodcast = podcastFilter === "all" || episode.podcast.title === podcastFilter
 
     return matchesSearch && matchesStatus && matchesPodcast
   })
 
-  const uniquePodcasts = Array.from(new Set(mockEpisodes.map((ep) => ep.podcast)))
+  const uniquePodcasts = Array.from(new Set(episodes.map((ep) => ep.podcast.title)))
 
   return (
     <div className="min-h-screen bg-background">
@@ -130,6 +171,29 @@ export default function Episodes() {
           <p className="text-muted-foreground">Manage all your AI-generated podcast episodes across all shows</p>
         </div>
 
+        {!isAuthenticated ? (
+          <Card>
+            <CardContent className="p-8 text-center">
+              <p className="text-muted-foreground mb-4">Please connect your wallet to view your episodes.</p>
+              <Button>Connect Wallet</Button>
+            </CardContent>
+          </Card>
+        ) : loading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p>Loading episodes...</p>
+          </div>
+        ) : error ? (
+          <Card>
+            <CardContent className="p-8 text-center">
+              <p className="text-red-600 mb-4">{error}</p>
+              <Button onClick={fetchEpisodesAndPodcasts}>Try Again</Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+        
+
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           <Card>
@@ -137,7 +201,7 @@ export default function Episodes() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Total Episodes</p>
-                  <p className="text-2xl font-bold">{mockEpisodes.length}</p>
+                  <p className="text-2xl font-bold">{episodes.length}</p>
                 </div>
                 <PlayIcon className="w-8 h-8 text-primary" />
               </div>
@@ -149,7 +213,7 @@ export default function Episodes() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Published</p>
-                  <p className="text-2xl font-bold">{mockEpisodes.filter((ep) => ep.status === "published").length}</p>
+                  <p className="text-2xl font-bold">{episodes.filter((ep) => getEpisodeStatus(ep) === "published").length}</p>
                 </div>
                 <EyeOpenIcon className="w-8 h-8 text-green-600" />
               </div>
@@ -160,10 +224,10 @@ export default function Episodes() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Scheduled</p>
-                  <p className="text-2xl font-bold">{mockEpisodes.filter((ep) => ep.status === "scheduled").length}</p>
+                  <p className="text-sm text-muted-foreground">Drafts</p>
+                  <p className="text-2xl font-bold">{episodes.filter((ep) => getEpisodeStatus(ep) === "draft").length}</p>
                 </div>
-                <CalendarIcon className="w-8 h-8 text-green-600" />
+                <CalendarIcon className="w-8 h-8 text-blue-600" />
               </div>
             </CardContent>
           </Card>
@@ -172,9 +236,9 @@ export default function Episodes() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Total Plays</p>
+                  <p className="text-sm text-muted-foreground">Total Views</p>
                   <p className="text-2xl font-bold">
-                    {mockEpisodes.reduce((sum, ep) => sum + ep.plays, 0).toLocaleString()}
+                    {episodes.reduce((sum, ep) => sum + (ep.totalViews || 0), 0).toLocaleString()}
                   </p>
                 </div>
                 <ClockIcon className="w-8 h-8 text-green-600" />
@@ -190,7 +254,7 @@ export default function Episodes() {
               <div className="relative flex-1">
                 <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
-                  placeholder="Search episodes..."
+                  placeholder="Search by episode title, topic, or content..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -246,54 +310,57 @@ export default function Episodes() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredEpisodes.map((episode) => (
-                  <TableRow key={episode.id}>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{episode.title}</p>
-                        <p className="text-sm text-muted-foreground line-clamp-1">{episode.description}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{episode.podcast}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={statusColors[episode.status as keyof typeof statusColors]}>
-                        {episode.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{episode.publishDate}</TableCell>
-                    <TableCell>{episode.duration}</TableCell>
-                    <TableCell>{episode.plays.toLocaleString()}</TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <DotsHorizontalIcon className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem className="gap-2" onClick={() => handlePlayEpisode(episode)}>
-                            <PlayIcon className="w-4 h-4" />
-                            Play
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="gap-2">
-                            <EyeOpenIcon className="w-4 h-4" />
-                            View Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="gap-2">
-                            <Pencil1Icon className="w-4 h-4" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="gap-2 text-destructive">
-                            <TrashIcon className="w-4 h-4" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {filteredEpisodes.map((episode) => {
+                  const episodeStatus = getEpisodeStatus(episode)
+                  return (
+                    <TableRow key={episode._id}>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{episode.title}</p>
+                          <p className="text-sm text-muted-foreground line-clamp-1">{episode.summary}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{episode.podcast.title}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={statusColors[episodeStatus as keyof typeof statusColors]}>
+                          {episodeStatus}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{new Date(episode.createdAt).toLocaleDateString()}</TableCell>
+                      <TableCell>~30 min</TableCell>
+                      <TableCell>{(episode.totalViews || 0).toLocaleString()}</TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <DotsHorizontalIcon className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem className="gap-2" onClick={() => handlePlayEpisode(episode)}>
+                              <PlayIcon className="w-4 h-4" />
+                              Play
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="gap-2">
+                              <EyeOpenIcon className="w-4 h-4" />
+                              View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="gap-2">
+                              <Pencil1Icon className="w-4 h-4" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="gap-2 text-destructive">
+                              <TrashIcon className="w-4 h-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
               </TableBody>
             </Table>
 
@@ -304,6 +371,8 @@ export default function Episodes() {
             )}
           </CardContent>
         </Card>
+          </>
+        )}
       </main>
     </div>
   )

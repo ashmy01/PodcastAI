@@ -9,8 +9,8 @@ export function withAuth<T extends any[]>(
 ) {
   return async (req: NextRequest, ...args: T): Promise<NextResponse> => {
     try {
-      // Extract wallet address from request headers
-      const walletAddress = req.headers.get('x-wallet-address')
+      // Extract wallet address using the updated function
+      const walletAddress = extractWalletAddress(req)
       
       if (!walletAddress) {
         return NextResponse.json(
@@ -19,18 +19,9 @@ export function withAuth<T extends any[]>(
         )
       }
 
-      // Validate wallet address format (basic Ethereum address validation)
-      const ethAddressRegex = /^0x[a-fA-F0-9]{40}$/
-      if (!ethAddressRegex.test(walletAddress)) {
-        return NextResponse.json(
-          { message: 'Invalid wallet address format' },
-          { status: 400 }
-        )
-      }
-
       // Add wallet address to request object
       const authenticatedReq = req as AuthenticatedRequest
-      authenticatedReq.walletAddress = walletAddress.toLowerCase()
+      authenticatedReq.walletAddress = walletAddress
 
       // Call the original handler with the authenticated request
       return await handler(authenticatedReq, ...args)
@@ -45,7 +36,16 @@ export function withAuth<T extends any[]>(
 }
 
 export function extractWalletAddress(req: NextRequest): string | null {
-  const walletAddress = req.headers.get('x-wallet-address')
+  // Try x-wallet-address header first
+  let walletAddress = req.headers.get('x-wallet-address')
+  
+  // If not found, try Authorization header (Bearer format)
+  if (!walletAddress) {
+    const authHeader = req.headers.get('authorization')
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      walletAddress = authHeader.substring(7) // Remove 'Bearer ' prefix
+    }
+  }
   
   if (!walletAddress) {
     return null

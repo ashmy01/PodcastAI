@@ -1,10 +1,10 @@
 import { BaseAIService } from './base-ai-service';
 import { getAIServiceConfig } from './config';
 import { VerificationAgent } from './interfaces';
-import { 
-  VerificationResult, 
-  QualityScore, 
-  ComplianceResult 
+import {
+  VerificationResult,
+  QualityScore,
+  ComplianceResult
 } from './types';
 
 export class AIVerificationAgent extends BaseAIService implements VerificationAgent {
@@ -21,15 +21,15 @@ export class AIVerificationAgent extends BaseAIService implements VerificationAg
       // Fetch episode content and campaign requirements
       const episodeContent = await this.getEpisodeContent(episodeId);
       const campaignRequirements = await this.getCampaignRequirements(campaignId);
-      
+
       // Perform comprehensive verification
       const qualityScore = await this.analyzeContentQuality(episodeContent, campaignRequirements);
       const complianceResult = await this.validateCompliance(episodeContent);
       const requirementsMet = await this.checkRequirements(episodeContent, campaignRequirements);
-      
-      const verified = qualityScore.overall >= 0.7 && 
-                      complianceResult.compliant && 
-                      requirementsMet.every(met => met);
+
+      const verified = qualityScore.overall >= 0.7 &&
+        complianceResult.compliant &&
+        requirementsMet.every(met => met);
 
       const result: VerificationResult = {
         verified,
@@ -93,12 +93,12 @@ export class AIVerificationAgent extends BaseAIService implements VerificationAg
     try {
       const response = await this.generateContent(prompt);
       const parsed = JSON.parse(response);
-      
+
       // Validate the response structure
       if (!this.isValidQualityScore(parsed)) {
         throw new Error('Invalid quality score response format');
       }
-      
+
       return parsed;
     } catch (error) {
       console.error('Error analyzing content quality:', error);
@@ -143,7 +143,7 @@ export class AIVerificationAgent extends BaseAIService implements VerificationAg
 
   async checkRequirements(content: string, requirements: string[]): Promise<boolean[]> {
     const results: boolean[] = [];
-    
+
     for (const requirement of requirements) {
       const prompt = `
       Check if this specific requirement is met in the podcast content:
@@ -203,12 +203,12 @@ export class AIVerificationAgent extends BaseAIService implements VerificationAg
     try {
       const response = await this.generateContent(prompt);
       const score = parseFloat(response.trim());
-      
+
       if (isNaN(score) || score < 0 || score > 1) {
         console.warn('Invalid naturalness score, using fallback');
         return this.calculateFallbackNaturalness(content);
       }
-      
+
       return score;
     } catch (error) {
       console.error('Error scoring naturalness:', error);
@@ -217,8 +217,8 @@ export class AIVerificationAgent extends BaseAIService implements VerificationAg
   }
 
   private generateFeedback(
-    qualityScore: QualityScore, 
-    complianceResult: ComplianceResult, 
+    qualityScore: QualityScore,
+    complianceResult: ComplianceResult,
     requirementsMet: boolean[]
   ): string[] {
     const feedback: string[] = [];
@@ -262,7 +262,7 @@ export class AIVerificationAgent extends BaseAIService implements VerificationAg
   }
 
   private generateImprovementSuggestions(
-    qualityScore: QualityScore, 
+    qualityScore: QualityScore,
     complianceResult: ComplianceResult
   ): string[] {
     const suggestions: string[] = [];
@@ -360,7 +360,7 @@ export class AIVerificationAgent extends BaseAIService implements VerificationAg
 
     // Check for common compliance issues
     const lowerContent = content.toLowerCase();
-    
+
     // Check for misleading claims
     const misleadingWords = ['guaranteed', 'miracle', 'instant results', 'get rich quick'];
     for (const word of misleadingWords) {
@@ -371,11 +371,11 @@ export class AIVerificationAgent extends BaseAIService implements VerificationAg
     }
 
     // Check for disclosure
-    const hasDisclosure = lowerContent.includes('sponsor') || 
-                         lowerContent.includes('advertisement') || 
-                         lowerContent.includes('ad') ||
-                         lowerContent.includes('partner');
-    
+    const hasDisclosure = lowerContent.includes('sponsor') ||
+      lowerContent.includes('advertisement') ||
+      lowerContent.includes('ad') ||
+      lowerContent.includes('partner');
+
     if (!hasDisclosure) {
       violations.push('Missing advertising disclosure');
       suggestions.push('Add clear disclosure that this is sponsored content');
@@ -398,12 +398,12 @@ export class AIVerificationAgent extends BaseAIService implements VerificationAg
   private basicRequirementCheck(content: string, requirement: string): boolean {
     const lowerContent = content.toLowerCase();
     const lowerRequirement = requirement.toLowerCase();
-    
+
     // Extract key terms from requirement
-    const keyTerms = lowerRequirement.split(/\s+/).filter(term => 
+    const keyTerms = lowerRequirement.split(/\s+/).filter(term =>
       term.length > 3 && !['the', 'and', 'for', 'with', 'that', 'this'].includes(term)
     );
-    
+
     // Check if most key terms are present
     const foundTerms = keyTerms.filter(term => lowerContent.includes(term));
     return foundTerms.length / keyTerms.length >= 0.6;
@@ -411,11 +411,11 @@ export class AIVerificationAgent extends BaseAIService implements VerificationAg
 
   private basicRequirementsCheck(content: string, requirements: string[]): number {
     if (requirements.length === 0) return 1;
-    
-    const metCount = requirements.filter(req => 
+
+    const metCount = requirements.filter(req =>
       this.basicRequirementCheck(content, req)
     ).length;
-    
+
     return metCount / requirements.length;
   }
 
@@ -424,7 +424,7 @@ export class AIVerificationAgent extends BaseAIService implements VerificationAg
       'speaking of', 'by the way', 'actually', 'you know', 'also',
       'meanwhile', 'before we continue', 'quick note', 'while we\'re on'
     ];
-    
+
     const lowerContent = content.toLowerCase();
     return transitionWords.some(word => lowerContent.includes(word));
   }
@@ -437,38 +437,38 @@ export class AIVerificationAgent extends BaseAIService implements VerificationAg
       /get.*rich.*quick/i,
       /100%.*effective/i
     ];
-    
+
     return problematicPatterns.some(pattern => pattern.test(content));
   }
 
   private calculateFallbackNaturalness(content: string): number {
     let score = 0.5; // Base score
-    
+
     // Check for ad markers (indicates structured integration)
     if (content.includes('[AD START]') && content.includes('[AD END]')) {
       score += 0.1;
     }
-    
+
     // Check for transition words
     if (this.checkForTransitionWords(content)) {
       score += 0.2;
     }
-    
+
     // Check for conversational elements
     if (content.includes(':') && content.includes('?')) {
       score += 0.1; // Has dialogue and questions
     }
-    
+
     // Penalize if too promotional
     const promotionalWords = ['buy', 'purchase', 'order now', 'limited time'];
-    const promotionalCount = promotionalWords.filter(word => 
+    const promotionalCount = promotionalWords.filter(word =>
       content.toLowerCase().includes(word)
     ).length;
-    
+
     if (promotionalCount > 2) {
       score -= 0.2;
     }
-    
+
     return Math.max(0, Math.min(1, score));
   }
 

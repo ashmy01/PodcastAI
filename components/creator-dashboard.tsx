@@ -83,11 +83,15 @@ export function CreatorDashboard({ walletAddress }: CreatorDashboardProps) {
       
       if (podcastsResponse.ok) {
         const podcastsData = await podcastsResponse.json();
-        setPodcasts(podcastsData);
+        setPodcasts(podcastsData || []);
+      } else {
+        console.error('Failed to fetch podcasts:', podcastsResponse.statusText);
+        setPodcasts([]);
       }
 
       // Fetch earnings
       const earningsResponse = await fetch('/api/ai/process-payout', {
+        method: 'GET',
         headers: {
           'Authorization': `Bearer ${walletAddress}`,
         },
@@ -95,11 +99,55 @@ export function CreatorDashboard({ walletAddress }: CreatorDashboardProps) {
       
       if (earningsResponse.ok) {
         const earningsData = await earningsResponse.json();
-        setEarnings(earningsData.earnings);
+        setEarnings(earningsData.earnings || {
+          totalEarnings: 0,
+          pendingPayouts: 0,
+          completedPayouts: 0,
+          activeCampaigns: 0,
+          averagePayoutRate: 0,
+          monthlyEarnings: {}
+        });
+      } else {
+        console.error('Failed to fetch earnings:', earningsResponse.statusText);
+        setEarnings({
+          totalEarnings: 0,
+          pendingPayouts: 0,
+          completedPayouts: 0,
+          activeCampaigns: 0,
+          averagePayoutRate: 0,
+          monthlyEarnings: {}
+        });
+      }
+
+      // Fetch ad placements for this creator
+      try {
+        const placementsResponse = await fetch(`/api/ai/placements?owner=${walletAddress}`, {
+          headers: {
+            'Authorization': `Bearer ${walletAddress}`,
+          },
+        });
+        
+        if (placementsResponse.ok) {
+          const placementsData = await placementsResponse.json();
+          setAdPlacements(placementsData.placements || []);
+        }
+      } catch (placementError) {
+        console.error('Error fetching ad placements:', placementError);
+        setAdPlacements([]);
       }
 
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
+      setPodcasts([]);
+      setEarnings({
+        totalEarnings: 0,
+        pendingPayouts: 0,
+        completedPayouts: 0,
+        activeCampaigns: 0,
+        averagePayoutRate: 0,
+        monthlyEarnings: {}
+      });
+      setAdPlacements([]);
     } finally {
       setLoading(false);
     }

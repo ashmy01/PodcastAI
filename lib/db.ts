@@ -3,6 +3,9 @@ import mongoose from 'mongoose';
 // Import models to ensure they are registered with Mongoose
 import './models/Podcast';
 import './models/Episode';
+import './models/AdPlacement';
+import './models/Campaign';
+import './models/CampaignAnalytics';
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/podcast-ai';
 

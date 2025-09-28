@@ -4,11 +4,11 @@ import { Campaign } from '@/lib/models/Campaign';
 import { requireAuth, extractWalletAddress } from '@/lib/auth-middleware';
 import { AIMatchingAgent } from '@/lib/ai/matching-agent';
 import { AIDatabaseService } from '@/lib/ai/database-service';
+import { MediaService } from '@/lib/services/media-service';
 
 export async function POST(req: NextRequest) {
   await dbConnect();
 
-  // Check authentication
   const authError = requireAuth(req);
   if (authError) return authError;
 
@@ -36,14 +36,11 @@ export async function POST(req: NextRequest) {
       qualityThreshold = 0.7
     } = body;
 
-    // Validate required fields
     if (!brandName || !productName || !description || !category || !budget || !payoutPerView) {
       return NextResponse.json({ 
         message: 'Missing required fields: brandName, productName, description, category, budget, payoutPerView' 
       }, { status: 400 });
     }
-
-    // Create default verification criteria if not provided
     const defaultVerificationCriteria = verificationCriteria || {
       minQualityScore: qualityThreshold,
       requiredElements: requirements || [],
@@ -51,7 +48,6 @@ export async function POST(req: NextRequest) {
       naturalness: 0.6
     };
 
-    // Create campaign
     const newCampaign = new Campaign({
       brandId: walletAddress,
       brandName,
@@ -73,7 +69,6 @@ export async function POST(req: NextRequest) {
 
     const savedCampaign = await newCampaign.save();
 
-    // If AI matching is enabled, find initial matches
     let initialMatches = [];
     if (aiMatchingEnabled) {
       try {
@@ -81,7 +76,6 @@ export async function POST(req: NextRequest) {
         initialMatches = await matchingAgent.findMatches(savedCampaign._id.toString());
       } catch (matchError) {
         console.error('Error finding initial matches:', matchError);
-        // Don't fail campaign creation if matching fails
       }
     }
 
@@ -103,7 +97,6 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   await dbConnect();
 
-  // Check authentication
   const authError = requireAuth(req);
   if (authError) return authError;
 
@@ -119,12 +112,9 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20');
     const offset = parseInt(searchParams.get('offset') || '0');
 
-    // Build query
     const query: any = { brandId: walletAddress };
     if (status) query.status = status;
     if (category) query.category = category;
-
-    // Get campaigns with pagination
     const campaigns = await Campaign.find(query)
       .sort({ createdAt: -1 })
       .limit(limit)
@@ -132,21 +122,25 @@ export async function GET(req: NextRequest) {
 
     const total = await Campaign.countDocuments(query);
 
-    // Get analytics for each campaign
     const dbService = new AIDatabaseService();
+    const mediaService = new MediaService();
     const campaignsWithAnalytics = await Promise.all(
       campaigns.map(async (campaign) => {
         try {
           const analytics = await dbService.getCampaignAnalytics(campaign._id.toString());
+          const brandLogo = mediaService.generateBrandLogo(campaign.brandName);
           return {
             ...campaign.toObject(),
-            analytics
+            analytics,
+            brandLogo
           };
         } catch (error) {
           console.error(`Error fetching analytics for campaign ${campaign._id}:`, error);
+          const brandLogo = mediaService.generateBrandLogo(campaign.brandName);
           return {
             ...campaign.toObject(),
-            analytics: null
+            analytics: null,
+            brandLogo
           };
         }
       })

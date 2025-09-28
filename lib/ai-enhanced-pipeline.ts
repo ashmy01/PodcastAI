@@ -178,10 +178,11 @@ export class AIEnhancedPipeline {
       // Convert podcast to AI format
       const aiPodcast = this.convertToAIPodcast(podcast);
       
-      // Get active campaigns
+      // Get active campaigns from database
       const activeCampaigns = await Campaign.find({ 
         status: 'active',
-        aiMatchingEnabled: true 
+        aiMatchingEnabled: true,
+        $expr: { $gt: [{ $subtract: ['$budget', '$totalSpent'] }, '$payoutPerView'] } // Has remaining budget
       }).limit(20); // Limit for performance
 
       const matchedCampaigns: ICampaign[] = [];
@@ -190,18 +191,24 @@ export class AIEnhancedPipeline {
         if (matchedCampaigns.length >= maxAds) break;
 
         // Check if podcast can accept this campaign
-        if (!aiPodcast.canAcceptAd(campaign.category, campaign.brandName)) {
+        if (!podcast.canAcceptAd || !podcast.canAcceptAd(campaign.category, campaign.brandName)) {
           continue;
         }
 
-        // Use AI matching to score compatibility
-        const compatibilityScore = await this.matchingAgent.scoreCompatibility(
-          this.convertToCampaignType(campaign),
-          aiPodcast
-        );
+        try {
+          // Use AI matching to score compatibility
+          const compatibilityScore = await this.matchingAgent.scoreCompatibility(
+            this.convertToCampaignType(campaign),
+            aiPodcast
+          );
 
-        if (compatibilityScore >= 0.5) { // Minimum threshold
-          matchedCampaigns.push(this.convertToCampaignType(campaign));
+          if (compatibilityScore >= 0.5) { // Minimum threshold
+            matchedCampaigns.push(this.convertToCampaignType(campaign));
+            console.log(`Matched campaign ${campaign.brandName} with score ${compatibilityScore.toFixed(2)}`);
+          }
+        } catch (matchError) {
+          console.error(`Error scoring compatibility for campaign ${campaign._id}:`, matchError);
+          // Continue with other campaigns
         }
       }
 

@@ -59,20 +59,38 @@ export class AIDatabaseService {
   async getEligiblePodcasts(campaign: ICampaign, limit: number = 50): Promise<PodcastAI[]> {
     try {
       const query: any = {
-        monetizationEnabled: true,
-        aiContentEnabled: true
+        $or: [
+          { monetizationEnabled: true },
+          { monetizationEnabled: { $exists: false } } // Include podcasts without this field set
+        ],
+        $and: [
+          {
+            $or: [
+              { aiContentEnabled: true },
+              { aiContentEnabled: { $exists: false } } // Include podcasts without this field set
+            ]
+          }
+        ]
       };
 
       // Filter by allowed categories if specified
       if (campaign.category) {
-        query.$or = [
-          { 'adPreferences.allowedCategories': { $in: [campaign.category] } },
-          { 'adPreferences.allowedCategories': { $size: 0 } } // No restrictions
-        ];
+        query.$and.push({
+          $or: [
+            { 'adPreferences.allowedCategories': { $in: [campaign.category] } },
+            { 'adPreferences.allowedCategories': { $size: 0 } }, // No restrictions
+            { 'adPreferences.allowedCategories': { $exists: false } } // No preferences set
+          ]
+        });
       }
 
       // Exclude podcasts that block this brand
-      query['adPreferences.blockedBrands'] = { $ne: campaign.brandName };
+      query.$and.push({
+        $or: [
+          { 'adPreferences.blockedBrands': { $ne: campaign.brandName } },
+          { 'adPreferences.blockedBrands': { $exists: false } } // No blocked brands set
+        ]
+      });
 
       const podcasts = await Podcast.find(query).limit(limit);
       

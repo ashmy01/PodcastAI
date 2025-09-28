@@ -72,10 +72,14 @@ export function BrandDashboard({ walletAddress }: BrandDashboardProps) {
       
       if (response.ok) {
         const data = await response.json();
-        setCampaigns(data.campaigns);
+        setCampaigns(data.campaigns || []);
+      } else {
+        console.error('Failed to fetch campaigns:', response.statusText);
+        setCampaigns([]);
       }
     } catch (error) {
       console.error('Error fetching campaigns:', error);
+      setCampaigns([]);
     } finally {
       setLoading(false);
     }
@@ -92,9 +96,13 @@ export function BrandDashboard({ walletAddress }: BrandDashboardProps) {
       if (response.ok) {
         const data = await response.json();
         setAnalytics(data);
+      } else {
+        console.error('Failed to fetch analytics:', response.statusText);
+        setAnalytics(null);
       }
     } catch (error) {
       console.error('Error fetching analytics:', error);
+      setAnalytics(null);
     }
   };
 

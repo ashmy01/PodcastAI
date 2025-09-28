@@ -117,14 +117,32 @@ export default function CreatePodcast() {
   }
 
   const handleSubmit = async () => {
+    const validCharacters = formData.characters.filter(char => char.name.trim() && char.personality.trim());
+    
+    if (validCharacters.length === 0) {
+      alert('Please provide at least one character with both name and personality.');
+      return;
+    }
+
+    if (!formData.title.trim() || !formData.description.trim() || !formData.concept.trim() || 
+        !formData.tone || !formData.frequency || !formData.length) {
+      alert('Please fill in all required fields.');
+      return;
+    }
+
     setIsLoading(true)
     try {
+      const submitData = {
+        ...formData,
+        characters: validCharacters
+      };
+
       const response = await authenticatedFetch('/api/podcasts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(submitData),
       }, address);
 
       if (response.ok) {
@@ -134,10 +152,11 @@ export default function CreatePodcast() {
       } else {
         const errorData = await response.json();
         console.error("Failed to create podcast:", errorData.message);
-        // Here you could show an error message to the user
+        alert(`Failed to create podcast: ${errorData.message}`);
       }
     } catch (error) {
       console.error("Error submitting form:", error);
+      alert('An error occurred while creating the podcast. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -210,7 +229,7 @@ export default function CreatePodcast() {
                     <Label htmlFor="title" className="text-lg">Podcast Title</Label>
                     <Input
                       id="title"
-                      placeholder="e.g., AI After Dark"
+                      placeholder="What would you like to call your podcast?"
                       value={formData.title}
                       onChange={(e) => updateFormData("title", e.target.value)}
                       className="text-base p-6 mt-2"
@@ -221,7 +240,7 @@ export default function CreatePodcast() {
                     <Label htmlFor="concept" className="text-lg">Concept Description</Label>
                     <Textarea
                       id="concept"
-                      placeholder="e.g., I want a weekly podcast where two AI hosts debate the latest tech news. One is a cautious skeptic, the other a wild optimist..."
+                      placeholder="Describe your podcast concept in detail. What topics will it cover? What's the format? What makes it unique and engaging for listeners?"
                       className="min-h-40 text-base p-4 mt-2"
                       value={formData.concept}
                       onChange={(e) => updateFormData("concept", e.target.value)}
@@ -232,7 +251,7 @@ export default function CreatePodcast() {
                     <Label htmlFor="description" className="text-lg">Short Description for Audience</Label>
                     <Textarea
                       id="description"
-                      placeholder="e.g., The podcast where robots argue about the future. Tune in for your weekly dose of digital debate."
+                      placeholder="Write a compelling description that will attract listeners. What can they expect from your show?"
                       className="min-h-24 text-base p-4 mt-2"
                       value={formData.description}
                       onChange={(e) => updateFormData("description", e.target.value)}
@@ -246,7 +265,7 @@ export default function CreatePodcast() {
                     </p>
                     <div className="flex gap-2">
                       <Input
-                        placeholder="Add a topic and press Enter..."
+                        placeholder="Enter topics your podcast will cover (e.g., Technology, Business, Health)"
                         value={formData.newTopic}
                         onChange={(e) => updateFormData("newTopic", e.target.value)}
                         onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), addTopic())}

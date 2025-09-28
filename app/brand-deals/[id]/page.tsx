@@ -1,7 +1,7 @@
 "use client"
 
 import { useParams, useRouter } from "next/navigation"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Navigation } from "@/components/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -22,68 +22,9 @@ import Link from "next/link"
 import { useAuth } from "@/lib/auth-context"
 import { toast } from "sonner"
 import { DollarSign, Loader2 } from "lucide-react"
-
-// Mock data for individual brand deal
-const mockBrandDealData = {
-  "1": {
-    id: "1",
-    brandName: "TechFlow Solutions",
-    productName: "AI Code Assistant Pro",
-    description: "Revolutionary AI-powered coding assistant that helps developers write better code faster. Perfect for tech podcasts discussing developer tools and AI productivity. Our tool integrates seamlessly with popular IDEs and provides real-time suggestions, code completion, and bug detection.",
-    budget: "5.0",
-    currency: "ETH",
-    category: "Technology",
-    targetAudience: "Developers, Tech Enthusiasts, Software Engineers",
-    requirements: [
-      "Mention product in 2-3 episodes over the campaign period",
-      "Discuss AI coding benefits and personal experience",
-      "Include discount code: PODCAST20 for 20% off",
-      "Share at least one social media post about the product",
-      "Provide analytics report at campaign end"
-    ],
-    duration: "30 days",
-    status: "active",
-    applicants: 12,
-    createdAt: "2024-01-15",
-    brandLogo: "🚀",
-    tags: ["AI", "Developer Tools", "Productivity", "SaaS"],
-    website: "https://techflow-solutions.com",
-    
-    // Contract details
-    contractAddress: "0x1234...5678",
-    escrowEnabled: true,
-    autoRelease: false,
-    exclusivity: false,
-    contentApproval: true,
-    
-    // Campaign progress
-    progress: 65,
-    milestonesCompleted: 2,
-    totalMilestones: 3,
-    
-    // Applications
-    applications: [
-      {
-        id: "app1",
-        podcasterName: "Tech Talk Daily",
-        podcastTitle: "Daily Tech Insights",
-        followers: 15000,
-        avgListeners: 8500,
-        status: "pending",
-        appliedAt: "2024-01-16"
-      },
-      {
-        id: "app2", 
-        podcasterName: "Code & Coffee",
-        podcastTitle: "Morning Dev Sessions",
-        followers: 22000,
-        avgListeners: 12000,
-        status: "approved",
-        appliedAt: "2024-01-14"
-      }
-    ]
-  }
-}
+import { CampaignDataService } from "@/lib/services/campaign-data-service"
+import { SmartContractService } from "@/lib/services/smart-contract-service"
+import { MediaService } from "@/lib/services/media-service"
 
 export default function BrandDealDetailPage() {
   const params = useParams()
@@ -91,15 +32,98 @@ export default function BrandDealDetailPage() {
   const { id } = params
   const { address, isAuthenticated } = useAuth()
   const [isApplying, setIsApplying] = useState(false)
+  const [deal, setDeal] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
 
-  const deal = mockBrandDealData[id as keyof typeof mockBrandDealData]
+  const campaignService = new CampaignDataService()
+  const contractService = new SmartContractService()
+  const mediaService = new MediaService()
+
+  useEffect(() => {
+    fetchCampaignDetails()
+  }, [id])
+
+  const fetchCampaignDetails = async () => {
+    try {
+      setLoading(true)
+      
+      // Use the enhanced campaign service to get full details
+      const campaignDetails = await campaignService.getCampaignById(id as string)
+      
+      if (campaignDetails) {
+        // Get contract details
+        const contractDetails = await contractService.getCampaignContract(id as string)
+        
+        setDeal({
+          ...campaignDetails,
+          brandLogo: mediaService.generateBrandLogo(campaignDetails.brandName),
+          website: `https://${campaignDetails.brandName.toLowerCase().replace(/\s+/g, '')}.com`,
+          contractDetails,
+          
+          // Calculate progress based on real analytics
+          progress: campaignDetails.analytics.totalImpressions > 0 
+            ? Math.min(100, (campaignDetails.analytics.totalImpressions / 10000) * 100)
+            : 0,
+          milestonesCompleted: campaignDetails.analytics.activeApplications,
+          totalMilestones: Math.max(1, Math.ceil(campaignDetails.duration / 10)),
+          
+          // Format target audience
+          targetAudience: Array.isArray(campaignDetails.targetAudience) 
+            ? campaignDetails.targetAudience.join(', ')
+            : campaignDetails.targetAudience,
+          
+          // Format duration
+          duration: `${campaignDetails.duration} days`,
+          
+          // Add tags
+          tags: [campaignDetails.category],
+          
+          // Format dates
+          createdAt: new Date(campaignDetails.createdAt).toLocaleDateString(),
+          
+          // Use real application count
+          applicants: campaignDetails.analytics.applicationCount,
+          
+          // Contract details from service
+          contractAddress: contractDetails.address,
+          escrowEnabled: contractDetails.escrowEnabled,
+          autoRelease: contractDetails.autoRelease,
+          exclusivity: contractDetails.exclusivity,
+          contentApproval: contractDetails.contentApproval,
+          
+          // Use real applications from campaign details
+          applications: campaignDetails.applications
+        });
+      } else {
+        setDeal(null);
+      }
+    } catch (error) {
+      console.error('Error fetching campaign details:', error);
+      setDeal(null);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <div className="container mx-auto px-6 py-12 text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4">Loading campaign details...</p>
+        </div>
+      </div>
+    )
+  }
 
   if (!deal) {
     return (
       <div className="min-h-screen bg-background">
         <Navigation />
         <div className="container mx-auto px-6 py-12 text-center">
-          <h1 className="text-2xl font-bold mb-4">Brand Deal Not Found</h1>
+          <h1 className="text-2xl font-bold mb-4">Campaign Not Found</h1>
+          <p className="text-muted-foreground mb-6">The campaign you're looking for doesn't exist or has been removed.</p>
           <Button onClick={() => router.back()}>Go Back</Button>
         </div>
       </div>
@@ -122,14 +146,28 @@ export default function BrandDealDetailPage() {
       return
     }
 
+    if (!address) {
+      toast.error("Wallet address not found")
+      return
+    }
+
     setIsApplying(true)
     try {
-      // Simulate application process
       toast.loading("Submitting application...", { id: "apply" })
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      
+      // Use the campaign service to submit application
+      const application = await campaignService.submitApplication(id as string, address)
+      
+      // Update the deal with the new application
+      setDeal((prev: any) => ({
+        ...prev,
+        applications: [...(prev.applications || []), application],
+        applicants: (prev.applicants || 0) + 1
+      }))
       
       toast.success("Application submitted successfully!", { id: "apply" })
     } catch (error) {
+      console.error('Error submitting application:', error)
       toast.error("Failed to submit application")
     } finally {
       setIsApplying(false)
@@ -188,8 +226,24 @@ export default function BrandDealDetailPage() {
                     </div>
                   </div>
                   <div className="text-sm text-green-700 mt-1">
-                    Contract: {deal.contractAddress} | Escrow: {deal.escrowEnabled ? "Enabled" : "Disabled"}
+                    Contract: {contractService.formatAddress(deal.contractAddress)} | Escrow: {deal.escrowEnabled ? "Enabled" : "Disabled"}
                   </div>
+                  {deal.analytics && (
+                    <div className="grid grid-cols-3 gap-4 mt-3 pt-3 border-t border-green-200">
+                      <div className="text-center">
+                        <div className="font-semibold text-green-800">{contractService.formatCurrency(deal.analytics.totalSpent, deal.currency)}</div>
+                        <div className="text-xs text-green-600">Spent</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="font-semibold text-green-800">{contractService.formatCurrency(deal.analytics.remainingBudget, deal.currency)}</div>
+                        <div className="text-xs text-green-600">Remaining</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="font-semibold text-green-800">{deal.analytics.roiMetrics.roi.toFixed(1)}%</div>
+                        <div className="text-xs text-green-600">ROI</div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
               
@@ -237,7 +291,7 @@ export default function BrandDealDetailPage() {
                 <div>
                   <h4 className="font-medium mb-2">Tags</h4>
                   <div className="flex flex-wrap gap-2">
-                    {deal.tags.map((tag) => (
+                    {deal.tags.map((tag: any) => (
                       <Badge key={tag} variant="secondary">
                         {tag}
                       </Badge>
@@ -255,7 +309,7 @@ export default function BrandDealDetailPage() {
               </CardHeader>
               <CardContent>
                 <ul className="space-y-3">
-                  {deal.requirements.map((req, index) => (
+                  {deal.requirements.map((req: any, index: any) => (
                     <li key={index} className="flex items-start gap-3">
                       <CheckCircledIcon className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
                       <span className="text-sm">{req}</span>
@@ -265,33 +319,69 @@ export default function BrandDealDetailPage() {
               </CardContent>
             </Card>
 
-            {/* Campaign Progress (if user is participating) */}
+            {/* Campaign Analytics */}
             <Card>
               <CardHeader>
-                <CardTitle>Campaign Progress</CardTitle>
-                <CardDescription>Track milestone completion and payments</CardDescription>
+                <CardTitle>Campaign Performance</CardTitle>
+                <CardDescription>Real-time analytics and metrics</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span>Overall Progress</span>
-                      <span>{deal.progress}%</span>
-                    </div>
-                    <Progress value={deal.progress} className="h-2" />
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+                {deal.analytics ? (
+                  <div className="space-y-6">
+                    {/* Progress Bar */}
                     <div>
-                      <span className="text-muted-foreground">Milestones Completed</span>
-                      <p className="font-medium">{deal.milestonesCompleted} / {deal.totalMilestones}</p>
+                      <div className="flex justify-between text-sm mb-2">
+                        <span>Campaign Progress</span>
+                        <span>{deal.progress.toFixed(1)}%</span>
+                      </div>
+                      <Progress value={deal.progress} className="h-2" />
                     </div>
-                    <div>
-                      <span className="text-muted-foreground">Funds Released</span>
-                      <p className="font-medium">{((deal.progress / 100) * parseFloat(deal.budget)).toFixed(2)} {deal.currency}</p>
+                    
+                    {/* Key Metrics Grid */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="text-center p-3 bg-muted/30 rounded-lg">
+                        <div className="font-semibold text-lg">{deal.analytics.totalImpressions.toLocaleString()}</div>
+                        <div className="text-xs text-muted-foreground">Impressions</div>
+                      </div>
+                      <div className="text-center p-3 bg-muted/30 rounded-lg">
+                        <div className="font-semibold text-lg">{deal.analytics.totalClicks.toLocaleString()}</div>
+                        <div className="text-xs text-muted-foreground">Clicks</div>
+                      </div>
+                      <div className="text-center p-3 bg-muted/30 rounded-lg">
+                        <div className="font-semibold text-lg">{(deal.analytics.clickThroughRate * 100).toFixed(2)}%</div>
+                        <div className="text-xs text-muted-foreground">CTR</div>
+                      </div>
+                      <div className="text-center p-3 bg-muted/30 rounded-lg">
+                        <div className="font-semibold text-lg">{deal.analytics.totalConversions}</div>
+                        <div className="text-xs text-muted-foreground">Conversions</div>
+                      </div>
+                    </div>
+                    
+                    {/* Financial Metrics */}
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">Active Applications</span>
+                        <p className="font-medium">{deal.analytics.activeApplications} / {deal.analytics.applicationCount}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Avg Quality Score</span>
+                        <p className="font-medium">{deal.analytics.averageQualityScore.toFixed(2)}/1.0</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Cost per Acquisition</span>
+                        <p className="font-medium">{contractService.formatCurrency(deal.analytics.costPerAcquisition, deal.currency)}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Conversion Rate</span>
+                        <p className="font-medium">{(deal.analytics.conversionRate * 100).toFixed(2)}%</p>
+                      </div>
                     </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <div className="text-sm">No analytics data available yet</div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -346,22 +436,45 @@ export default function BrandDealDetailPage() {
             {/* Recent Applications */}
             <Card>
               <CardHeader>
-                <CardTitle>Recent Applications</CardTitle>
-                <CardDescription>Other podcasters who applied</CardDescription>
+                <CardTitle>Applications ({deal.applications?.length || 0})</CardTitle>
+                <CardDescription>Podcasters who applied for this campaign</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                {deal.applications.slice(0, 3).map((app) => (
-                  <div key={app.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                    <div>
-                      <p className="font-medium text-sm">{app.podcasterName}</p>
-                      <p className="text-xs text-muted-foreground">{app.podcastTitle}</p>
-                      <p className="text-xs text-muted-foreground">{app.followers.toLocaleString()} followers</p>
+                {deal.applications && deal.applications.length > 0 ? (
+                  deal.applications.slice(0, 5).map((app: any) => (
+                    <div key={app.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                      <div className="flex-1">
+                        <p className="font-medium text-sm">{app.podcasterName}</p>
+                        <p className="text-xs text-muted-foreground">{app.podcastTitle}</p>
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
+                          <span>{app.followerCount.toLocaleString()} followers</span>
+                          <span>{app.averageListeners.toLocaleString()} avg listeners</span>
+                          {app.qualityScore && (
+                            <span>★{app.qualityScore.toFixed(1)} quality</span>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Applied: {app.appliedAt}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <Badge className={getStatusColor(app.status)} variant="secondary">
+                          {app.status}
+                        </Badge>
+                        {app.reviewedAt && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Reviewed: {app.reviewedAt}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                    <Badge className={getStatusColor(app.status)} variant="secondary">
-                      {app.status}
-                    </Badge>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <div className="text-sm">No applications yet</div>
+                    <div className="text-xs mt-1">Be the first to apply!</div>
                   </div>
-                ))}
+                )}
               </CardContent>
             </Card>
 

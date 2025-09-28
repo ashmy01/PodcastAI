@@ -136,7 +136,7 @@ export function AudioPlayer({ episode, playlist, onClose, onEpisodeChange }: Aud
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border shadow-lg">
-      <audio ref={audioRef} src={episode.audioUrl || "/placeholder-audio.mp3"} />
+      <audio ref={audioRef} src={episode.audioUrl || "/demo-audio.mp3"} />
 
       <div className="container mx-auto px-4 py-3">
         <div className="flex items-center gap-4">

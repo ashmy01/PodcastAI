@@ -34,20 +34,20 @@ export default function Settings() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="firstName">First Name</Label>
-                  <Input id="firstName" placeholder="John" />
+                  <Input id="firstName" placeholder="Enter your first name" />
                 </div>
                 <div>
                   <Label htmlFor="lastName">Last Name</Label>
-                  <Input id="lastName" placeholder="Doe" />
+                  <Input id="lastName" placeholder="Enter your last name" />
                 </div>
               </div>
               <div>
                 <Label htmlFor="email">Email Address</Label>
-                <Input id="email" type="email" placeholder="john@example.com" />
+                <Input id="email" type="email" placeholder="your.email@example.com" />
               </div>
               <div>
                 <Label htmlFor="bio">Bio</Label>
-                <Input id="bio" placeholder="Tell us about yourself..." />
+                <Input id="bio" placeholder="Share a brief description about yourself and your podcasting interests" />
               </div>
               <Button>Save Profile</Button>
             </CardContent>

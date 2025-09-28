@@ -139,24 +139,59 @@ export default function CreateBrandDeal() {
       return
     }
 
+    if (!formData.brandName.trim() || !formData.productName.trim() || !formData.description.trim() || 
+        !formData.category || !formData.budget || !formData.duration) {
+      toast.error("Please fill in all required fields")
+      return
+    }
+
     setIsLoading(true)
     try {
-      // Here you would integrate with your smart contract
-      // For now, we'll simulate the process
+      toast.loading("Creating brand deal...", { id: "deploy" })
       
-      toast.loading("Deploying smart contract...", { id: "deploy" })
-      
-      // Simulate contract deployment
-      await new Promise(resolve => setTimeout(resolve, 3000))
-      
-      toast.success("Brand deal created successfully!", { id: "deploy" })
-      
-      // Redirect to the brand deals page
-      router.push('/brand-deals')
+      const campaignData = {
+        brandName: formData.brandName.trim(),
+        productName: formData.productName.trim(),
+        description: formData.description.trim(),
+        category: formData.category,
+        targetAudience: formData.targetAudience ? [formData.targetAudience] : [],
+        requirements: formData.requirements,
+        budget: parseFloat(formData.budget),
+        currency: formData.currency,
+        payoutPerView: parseFloat(formData.budget) / 1000, // Default payout calculation
+        duration: parseInt(formData.duration),
+        aiMatchingEnabled: true,
+        contentGenerationRules: [],
+        verificationCriteria: {
+          minQualityScore: 0.7,
+          requiredElements: formData.requirements,
+          complianceChecks: ['appropriate content', 'proper disclosure'],
+          naturalness: 0.6
+        },
+        qualityThreshold: 0.7
+      };
+
+      const response = await fetch('/api/campaigns', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${address}`,
+        },
+        body: JSON.stringify(campaignData),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        toast.success("Brand deal created successfully!", { id: "deploy" })
+        router.push('/brand-deals')
+      } else {
+        const errorData = await response.json();
+        toast.error(`Failed to create brand deal: ${errorData.message}`, { id: "deploy" })
+      }
       
     } catch (error) {
       console.error("Error creating brand deal:", error)
-      toast.error("Failed to create brand deal. Please try again.")
+      toast.error("Failed to create brand deal. Please try again.", { id: "deploy" })
     } finally {
       setIsLoading(false)
     }
@@ -229,7 +264,7 @@ export default function CreateBrandDeal() {
                       <Label htmlFor="brandName" className="text-lg">Brand Name</Label>
                       <Input
                         id="brandName"
-                        placeholder="e.g., TechFlow Solutions"
+                        placeholder="Enter your company or brand name"
                         value={formData.brandName}
                         onChange={(e) => updateFormData("brandName", e.target.value)}
                         className="text-base p-6 mt-2"
@@ -240,7 +275,7 @@ export default function CreateBrandDeal() {
                       <Label htmlFor="productName" className="text-lg">Product Name</Label>
                       <Input
                         id="productName"
-                        placeholder="e.g., AI Code Assistant Pro"
+                        placeholder="What product or service are you promoting?"
                         value={formData.productName}
                         onChange={(e) => updateFormData("productName", e.target.value)}
                         className="text-base p-6 mt-2"
@@ -252,7 +287,7 @@ export default function CreateBrandDeal() {
                     <Label htmlFor="description" className="text-lg">Product Description</Label>
                     <Textarea
                       id="description"
-                      placeholder="Describe your product, its benefits, and why podcasters should promote it..."
+                      placeholder="Explain what makes your product unique, its key benefits, target audience, and why it would resonate with podcast listeners..."
                       className="min-h-32 text-base p-4 mt-2"
                       value={formData.description}
                       onChange={(e) => updateFormData("description", e.target.value)}
@@ -264,7 +299,7 @@ export default function CreateBrandDeal() {
                       <Label htmlFor="website" className="text-lg">Website URL</Label>
                       <Input
                         id="website"
-                        placeholder="https://your-brand.com"
+                        placeholder="https://yourcompany.com"
                         value={formData.website}
                         onChange={(e) => updateFormData("website", e.target.value)}
                         className="text-base p-6 mt-2"
@@ -275,7 +310,7 @@ export default function CreateBrandDeal() {
                       <Label htmlFor="brandLogo" className="text-lg">Brand Logo (Emoji)</Label>
                       <Input
                         id="brandLogo"
-                        placeholder="🚀"
+                        placeholder="Choose an emoji that represents your brand"
                         value={formData.brandLogo}
                         onChange={(e) => updateFormData("brandLogo", e.target.value)}
                         className="text-base p-6 mt-2"
@@ -336,7 +371,7 @@ export default function CreateBrandDeal() {
                     <Label htmlFor="targetAudience" className="text-lg">Target Audience</Label>
                     <Input
                       id="targetAudience"
-                      placeholder="e.g., Developers, Tech Enthusiasts, Startup Founders"
+                      placeholder="Who is your ideal customer? (e.g., Software Developers, Small Business Owners, Health Enthusiasts)"
                       value={formData.targetAudience}
                       onChange={(e) => updateFormData("targetAudience", e.target.value)}
                       className="text-base p-6 mt-2"
@@ -350,7 +385,7 @@ export default function CreateBrandDeal() {
                     </p>
                     <div className="flex gap-2">
                       <Input
-                        placeholder="Add a requirement..."
+                        placeholder="What do you need podcasters to do? (e.g., mention discount code, discuss specific features)"
                         value={formData.newRequirement}
                         onChange={(e) => updateFormData("newRequirement", e.target.value)}
                         onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), addRequirement())}
@@ -383,7 +418,7 @@ export default function CreateBrandDeal() {
                     </p>
                     <div className="flex gap-2">
                       <Input
-                        placeholder="Add a tag..."
+                        placeholder="Add relevant keywords (e.g., AI, SaaS, Health, Finance)"
                         value={formData.newTag}
                         onChange={(e) => updateFormData("newTag", e.target.value)}
                         onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), addTag())}
@@ -431,7 +466,7 @@ export default function CreateBrandDeal() {
                         id="budget"
                         type="number"
                         step="0.01"
-                        placeholder="5.0"
+                        placeholder="Enter your total campaign budget"
                         value={formData.budget}
                         onChange={(e) => updateFormData("budget", e.target.value)}
                         className="text-base p-6 mt-2"
